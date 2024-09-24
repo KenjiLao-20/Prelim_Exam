@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prelim Grade Calculator</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: rgb(36, 37, 37);
+        }
+
+        h1 {
+            color: #d6d6d6;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            padding: 20px;
+            border: 1px solid #000000;
+            border-radius: 5px;
+            background-color: #686868;
+        }
+
+        label {
+            margin-bottom: 5px;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        button[type="submit"] {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        h2 {
+            color: #929292;
+            margin-top: 20px;
+        }
+
+        p {
+            color: #929292;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prelim Grade Calculator</h1>
+    <form id="gradeForm">
+        <label for="attendance">Absences:</label>
+        <input type="number" id="attendance" name="attendance" required placeholder="Enter Absences"> 
+        <label for="recitation">Recitation:</label>
+        <input type="number" id="recitation" name="recitation" required placeholder="Enter Recitation"> 
+        <label for="quiz">Quiz:</label>
+        <input type="number" id="quiz" name="quiz" required placeholder="Enter Quiz"> 
+        <label for="requirements">Requirements:</label>
+        <input type="number" id="requirements" name="requirements" required placeholder="Enter Requirements"> 
+        <label for="prelim_exam">Prelim Exam:</label>
+        <input type="number" id="prelim_exam" name="prelim_exam" required placeholder="Enter Prelim Exam"> 
+        <button id="calculateBtn" type="submit">Calculate</button>
+    </form> 
+
+    <div id="result" style="display: none;">
+        <h2>Result:</h2>
+        <p>Prelim Grade: <span id="prelimGrade"></span></p>
+        <p>To pass with 75%, you need a Midterm grade of <span id="midtermGrade75"></span> and a Final grade of <span id="finalGrade75"></span></p>
+        <p>To pass with 90%, you need a Midterm grade of <span id="midtermGrade90"></span> and a Final grade of <span id="finalGrade90"></span></p>
+    </div>
+
+    <p id="error" style="color: red;"></p>
+
+    <py-script>
+        from pyscript import Element
+
+        def reset_result():
+            """Function to reset the result display and error message."""
+            Element("result").element.style.display = "none"  # Hide the result section
+            Element("error").element.innerHTML = ""  # Clear error message
+            Element("prelimGrade").element.innerHTML = ""
+            Element("midtermGrade75").element.innerHTML = ""
+            Element("finalGrade75").element.innerHTML = ""
+            Element("midtermGrade90").element.innerHTML = ""
+            Element("finalGrade90").element.innerHTML = ""
+
+        def calculate_grade(event):
+            event.preventDefault()  # Prevent the form from refreshing the page
+            reset_result()  # Reset any previous result when recalculating
+            try:
+                absences = float(Element("attendance").element.value)
+                recitation = float(Element("recitation").element.value)
+                quiz = float(Element("quiz").element.value)
+                requirements = float(Element("requirements").element.value)
+                prelim_exam = float(Element("prelim_exam").element.value)
+            except ValueError:
+                Element("error").element.innerHTML = "Please enter a valid input."
+                return
+
+            # Check if values are within the range of 0 to 100
+            if not (0 <= absences <= 100 and 0 <= recitation <= 100 and 0 <= quiz <= 100 and 0 <= requirements <= 100 and 0 <= prelim_exam <= 100):
+                Element("error").element.innerHTML = "Please enter a valid input between 0 and 100."
+                return
+
+            # Calculate attendance
+            attendance = 100 - (absences * 10)
+
+            # Check if absences are 4 or more
+            if absences >= 4:
+                Element("error").element.innerHTML = "You Failed Due to the Amount of Absences"
+                return
+
+            # Calculate performance task and overall performance
+            recitation_weight = 0.30  # 30% weight for recitation
+            quiz_weight = 0.40  # 40% weight for quiz
+            requirements_weight = 0.30  # 30% weight for requirements
+            overall_performance = round(( recitation * recitation_weight) + (quiz * quiz_weight) + (requirements * requirements_weight), 2)
+
+            # Calculate final grade
+            attendance_weight = 0.10  # 10% weight for attendance
+            prelim_exam_weight = 0.60  # 60% weight for prelim exam
+            class_standing_weight = 0.30  # 30% weight for class standing
+            prelim_grade = round((attendance * attendance_weight) + (prelim_exam * prelim_exam_weight) + (overall_performance * class_standing_weight), 2)
+
+            # Calculate required grades for 75% and 90%
+            passing_grade = 75
+            deans_lister_grade = 90
+            prelim_percent = 0.20
+            midterm_percent = 0.30
+            final_percent = 0.50
+
+            current_total = prelim_grade * prelim_percent
+            required_total = passing_grade - current_total
+            if required_total > 0:
+                required_midterm_and_final = required_total / (midterm_percent + final_percent)
+            else:
+                required_midterm_and_final = 0
+
+            current_total_90 = prelim_grade * prelim_percent
+            required_total_90 = deans_lister_grade - current_total_90
+            if required_total_90 > 0:
+                required_midterm_and_final_90 = required_total_90 / (midterm_percent + final_percent)
+            else:
+                required_midterm_and_final_90 = 0
+
+            # Update result display
+            Element("prelimGrade").element.innerHTML = f" {prelim_grade:.2f}"
+            Element("midtermGrade75").element.innerHTML = f" {required_midterm_and_final:.2f}"
+            Element("finalGrade75").element.innerHTML = f" {required_midterm_and_final:.2f}"
+            Element("midtermGrade90").element.innerHTML = f" {required_midterm_and_final_90:.2f}"
+            Element("finalGrade90").element.innerHTML = f" {required_midterm_and_final_90:.2f}"
+            # Show result section
+            Element("result").element.style.display = "block"
+
+        Element("calculateBtn").element.onclick = calculate_grade
+    </py-script>
+</body>
+</html>
